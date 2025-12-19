@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🎮 Color Memory Challenge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255, 0, 128, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            animation: bgPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes bgPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(1.2rem, 5vw, 2rem);
+            color: #00ffff;
+            text-shadow: 
+                0 0 10px #00ffff,
+                0 0 20px #00ffff,
+                0 0 30px #ff00ff,
+                0 0 40px #ff00ff;
+            margin-bottom: 1rem;
+            animation: glow 2s ease-in-out infinite;
+            letter-spacing: 0.1em;
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #ff00ff; }
+            50% { text-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 50px #ff00ff, 0 0 60px #ff00ff; }
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin: 2rem 0;
+            gap: 1rem;
+        }
+
+        .score-item {
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 1rem;
+            flex: 1;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .score-label {
+            font-size: 0.7rem;
+            color: #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .score-value {
+            font-size: 1.5rem;
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 2rem 0;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .color-button {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            touch-action: manipulation;
+        }
+
+        .color-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .color-button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+
+        .color-button.active::after {
+            width: 100%;
+            height: 100%;
+        }
+
+        .color-button:active {
+            transform: scale(0.95);
+        }
+
+        .red {
+            background: linear-gradient(135deg, #ff0040 0%, #cc0033 100%);
+            box-shadow: 0 8px 20px rgba(255, 0, 64, 0.4), inset 0 0 30px rgba(255, 100, 100, 0.3);
+        }
+
+        .red.active {
+            background: linear-gradient(135deg, #ff3366 0%, #ff0040 100%);
+            box-shadow: 0 0 40px rgba(255, 0, 64, 0.8), 0 0 60px rgba(255, 0, 64, 0.6);
+        }
+
+        .blue {
+            background: linear-gradient(135deg, #0080ff 0%, #0066cc 100%);
+            box-shadow: 0 8px 20px rgba(0, 128, 255, 0.4), inset 0 0 30px rgba(100, 150, 255, 0.3);
+        }
+
+        .blue.active {
+            background: linear-gradient(135deg, #3399ff 0%, #0080ff 100%);
+            box-shadow: 0 0 40px rgba(0, 128, 255, 0.8), 0 0 60px rgba(0, 128, 255, 0.6);
+        }
+
+        .green {
+            background: linear-gradient(135deg, #00ff80 0%, #00cc66 100%);
+            box-shadow: 0 8px 20px rgba(0, 255, 128, 0.4), inset 0 0 30px rgba(100, 255, 150, 0.3);
+        }
+
+        .green.active {
+            background: linear-gradient(135deg, #33ff99 0%, #00ff80 100%);
+            box-shadow: 0 0 40px rgba(0, 255, 128, 0.8), 0 0 60px rgba(0, 255, 128, 0.6);
+        }
+
+        .yellow {
+            background: linear-gradient(135deg, #ffff00 0%, #cccc00 100%);
+            box-shadow: 0 8px 20px rgba(255, 255, 0, 0.4), inset 0 0 30px rgba(255, 255, 100, 0.3);
+        }
+
+        .yellow.active {
+            background: linear-gradient(135deg, #ffff33 0%, #ffff00 100%);
+            box-shadow: 0 0 40px rgba(255, 255, 0, 0.8), 0 0 60px rgba(255, 255, 0, 0.6);
+        }
+
+        .control-button {
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-family: 'Press Start 2P', cursive;
+            background: linear-gradient(135deg, #ff00ff 0%, #00ffff 100%);
+            border: none;
+            border-radius: 50px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(255, 0, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 1rem;
+            touch-action: manipulation;
+        }
+
+        .control-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255, 0, 255, 0.6);
+        }
+
+        .control-button:active {
+            transform: translateY(-1px);
+        }
+
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            font-size: 1.2rem;
+            color: #fff;
+            margin: 1.5rem 0;
+            min-height: 2rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.error {
+            color: #ff0040;
+            text-shadow: 0 0 10px #ff0040;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .message.success {
+            color: #00ff80;
+            text-shadow: 0 0 10px #00ff80;
+        }
+
+        .difficulty {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .difficulty-label {
+            font-size: 0.8rem;
+            color: #00ffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-btn {
+            padding: 0.5rem 1rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            border-radius: 20px;
+            color: #00ffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .difficulty-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .difficulty-btn.active {
+            background: #00ffff;
+            color: #000;
+            font-weight: bold;
+        }
+
+        @media (max-width: 480px) {
+            .game-board {
+                max-width: 300px;
+                gap: 0.75rem;
+            }
+
+            .control-button {
+                padding: 0.8rem 2rem;
+                font-size: 0.7rem;
+            }
+
+            .score-item {
+                padding: 0.75rem;
+            }
+
+            .score-value {
+                font-size: 1.2rem;
+            }
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #fff;
+            border-radius: 50%;
+            animation: particleFloat 4s linear infinite;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-10vh) scale(1);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <h1>SIMON SAYS</h1>
+        
+        <div class="score-board">
+            <div class="score-item">
+                <div class="score-label">Round</div>
+                <div class="score-value" id="round">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">Best</div>
+                <div class="score-value" id="best">0</div>
+            </div>
+        </div>
+
+        <div class="message" id="message">Press START to begin!</div>
+
+        <div class="game-board">
+            <button class="color-button red" data-color="red"></button>
+            <button class="color-button blue" data-color="blue"></button>
+            <button class="color-button green" data-color="green"></button>
+            <button class="color-button yellow" data-color="yellow"></button>
+        </div>
+
+        <button class="control-button" id="startBtn">Start Game</button>
+
+        <div class="difficulty">
+            <div class="difficulty-label">SPEED</div>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn" data-speed="800">Chill</button>
+                <button class="difficulty-btn active" data-speed="600">Normal</button>
+                <button class="difficulty-btn" data-speed="400">Fast</button>
+                <button class="difficulty-btn" data-speed="250">Insane</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const colorButtons = document.querySelectorAll('.color-button');
+        const startBtn = document.getElementById('startBtn');
+        const messageEl = document.getElementById('message');
+        const roundEl = document.getElementById('round');
+        const bestEl = document.getElementById('best');
+        const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+        const particlesContainer = document.getElementById('particles');
+
+        let sequence = [];
+        let playerSequence = [];
+        let round = 0;
+        let isPlaying = false;
+        let isShowingSequence = false;
+        let speed = 600;
+        let bestScore = localStorage.getItem('simonBest') || 0;
+        bestEl.textContent = bestScore;
+
+        // Audio context for sounds
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        const sounds = {
+            red: 329.63,    // E4
+            blue: 261.63,   // C4
+            green: 392.00,  // G4
+            yellow: 440.00  // A4
+        };
+
+        function playSound(frequency, duration = 300) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration / 1000);
+        }
+
+        function playErrorSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 100;
+            oscillator.type = 'sawtooth';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        function lightUp(button, duration = speed * 0.8) {
+            return new Promise(resolve => {
+                const color = button.dataset.color;
+                playSound(sounds[color], duration);
+                button.classList.add('active');
+                
+                setTimeout(() => {
+                    button.classList.remove('active');
+                    setTimeout(resolve, speed * 0.2);
+                }, duration);
+            });
+        }
+
+        async function showSequence() {
+            isShowingSequence = true;
+            startBtn.disabled = true;
+            messageEl.textContent = 'Watch carefully...';
+            messageEl.classList.remove('error', 'success');
+            
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            for (let color of sequence) {
+                const button = document.querySelector(`[data-color="${color}"]`);
+                await lightUp(button);
+            }
+            
+            isShowingSequence = false;
+            messageEl.textContent = 'Your turn!';
+            messageEl.classList.add('success');
+        }
+
+        function addToSequence() {
+            const colors = ['red', 'blue', 'green', 'yellow'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            sequence.push(randomColor);
+        }
+
+        function checkSequence() {
+            const index = playerSequence.length - 1;
+            
+            if (playerSequence[index] !== sequence[index]) {
+                gameOver();
+                return false;
+            }
+            
+            if (playerSequence.length === sequence.length) {
+                round++;
+                roundEl.textContent = round;
+                
+                if (round > bestScore) {
+                    bestScore = round;
+                    bestEl.textContent = bestScore;
+                    localStorage.setItem('simonBest', bestScore);
+                    createCelebration();
+                }
+                
+                playerSequence = [];
+                messageEl.textContent = `Round ${round} complete! 🎉`;
+                messageEl.classList.add('success');
+                
+                setTimeout(() => {
+                    addToSequence();
+                    showSequence();
+                }, 1500);
+                
+                return true;
+            }
+            
+            return true;
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            playErrorSound();
+            messageEl.textContent = `Game Over! You reached round ${round}`;
+            messageEl.classList.add('error');
+            startBtn.disabled = false;
+            startBtn.textContent = 'Play Again';
+            
+            // Flash all buttons red
+            colorButtons.forEach(btn => {
+                btn.classList.add('active');
+            });
+            
+            setTimeout(() => {
+                colorButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            }, 500);
+        }
+
+        function startGame() {
+            sequence = [];
+            playerSequence = [];
+            round = 0;
+            isPlaying = true;
+            roundEl.textContent = round;
+            startBtn.textContent = 'Playing...';
+            
+            addToSequence();
+            showSequence();
+        }
+
+        // Button click handlers (mouse and touch)
+        colorButtons.forEach(button => {
+            const handlePress = async (e) => {
+                if (!isPlaying || isShowingSequence) return;
+                
+                e.preventDefault();
+                
+                const color = button.dataset.color;
+                playerSequence.push(color);
+                
+                await lightUp(button, 200);
+                checkSequence();
+            };
+            
+            button.addEventListener('click', handlePress);
+            button.addEventListener('touchstart', handlePress);
+        });
+
+        startBtn.addEventListener('click', startGame);
+
+        // Difficulty selection
+        difficultyBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isPlaying) return;
+                
+                difficultyBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                speed = parseInt(btn.dataset.speed);
+            });
+        });
+
+        // Create background particles
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 4 + 's';
+            particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
+            
+            const colors = ['#ff0040', '#0080ff', '#00ff80', '#ffff00'];
+            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+            
+            particlesContainer.appendChild(particle);
+            
+            setTimeout(() => particle.remove(), 7000);
+        }
+
+        setInterval(createParticle, 300);
+
+        // Celebration effect
+        function createCelebration() {
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    const particle = document.createElement('div');
+                    particle.style.position = 'fixed';
+                    particle.style.width = '10px';
+                    particle.style.height = '10px';
+                    particle.style.borderRadius = '50%';
+                    particle.style.left = '50%';
+                    particle.style.top = '50%';
+                    particle.style.pointerEvents = 'none';
+                    particle.style.zIndex = '1000';
+                    
+                    const colors = ['#ff0040', '#0080ff', '#00ff80', '#ffff00', '#ff00ff', '#00ffff'];
+                    particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    const angle = (Math.PI * 2 * i) / 30;
+                    const velocity = 5 + Math.random() * 5;
+                    const vx = Math.cos(angle) * velocity;
+                    const vy = Math.sin(angle) * velocity;
+                    
+                    document.body.appendChild(particle);
+                    
+                    let x = 0, y = 0;
+                    const animate = () => {
+                        x += vx;
+                        y += vy;
+                        particle.style.transform = `translate(${x}px, ${y}px)`;
+                        particle.style.opacity = 1 - (Math.abs(x) + Math.abs(y)) / 500;
+                        
+                        if (Math.abs(x) < 300 && Math.abs(y) < 300) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            particle.remove();
+                        }
+                    };
+                    
+                    requestAnimationFrame(animate);
+                }, i * 20);
+            }
+        }
+
+        // Initialize audio context on first user interaction
+        document.addEventListener('touchstart', () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }, { once: true });
+
+        document.addEventListener('click', () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }, { once: true });
+    </script>
+</body>
+</html>
