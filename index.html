@@ -2,435 +2,758 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>🎮 Color Memory Challenge</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simon Says • Multiplayer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-dark: #0a0e14;
+            --bg-medium: #151a23;
+            --bg-light: #1f2937;
+            --accent: #00ff88;
+            --text: #e5e7eb;
+            --text-dim: #9ca3af;
+            --red: #ff4444;
+            --blue: #4488ff;
+            --green: #44ff44;
+            --yellow: #ffff44;
         }
 
         body {
-            font-family: 'Orbitron', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            font-family: 'Space Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text);
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-            overflow: hidden;
-            position: relative;
+            overflow-x: hidden;
         }
 
-        body::before {
-            content: '';
+        .bg-pattern {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: 
-                radial-gradient(circle at 20% 50%, rgba(255, 0, 128, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%);
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 255, 136, 0.05) 0%, transparent 50%);
             pointer-events: none;
-            animation: bgPulse 8s ease-in-out infinite;
-        }
-
-        @keyframes bgPulse {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
+            z-index: 0;
         }
 
         .container {
             position: relative;
             z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
             text-align: center;
-            max-width: 600px;
-            width: 100%;
+            margin-bottom: 2rem;
+            animation: slideDown 0.6s ease;
         }
 
         h1 {
-            font-family: 'Press Start 2P', cursive;
-            font-size: clamp(1.2rem, 5vw, 2rem);
-            color: #00ffff;
-            text-shadow: 
-                0 0 10px #00ffff,
-                0 0 20px #00ffff,
-                0 0 30px #ff00ff,
-                0 0 40px #ff00ff;
-            margin-bottom: 1rem;
-            animation: glow 2s ease-in-out infinite;
-            letter-spacing: 0.1em;
+            font-family: 'Syne', sans-serif;
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent) 0%, #00ffcc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
         }
 
-        @keyframes glow {
-            0%, 100% { text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #ff00ff; }
-            50% { text-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 50px #ff00ff, 0 0 60px #ff00ff; }
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            letter-spacing: 0.05em;
         }
 
-        .score-board {
+        .setup-screen {
             display: flex;
-            justify-content: space-around;
-            margin: 2rem 0;
-            gap: 1rem;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            animation: fadeIn 0.8s ease;
         }
 
-        .score-item {
-            background: rgba(0, 255, 255, 0.1);
-            border: 2px solid #00ffff;
-            border-radius: 10px;
-            padding: 1rem;
-            flex: 1;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        .card {
+            background: var(--bg-medium);
+            border: 2px solid rgba(0, 255, 136, 0.2);
+            border-radius: 16px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 500px;
+            transition: all 0.3s ease;
         }
 
-        .score-label {
-            font-size: 0.7rem;
-            color: #00ffff;
+        .card:hover {
+            border-color: rgba(0, 255, 136, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .card h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            color: var(--accent);
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-dim);
+            font-size: 0.9rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            margin-bottom: 0.5rem;
         }
 
-        .score-value {
-            font-size: 1.5rem;
-            color: #fff;
-            font-weight: 900;
-        }
-
-        .game-board {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin: 2rem 0;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .color-button {
-            aspect-ratio: 1;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.1s ease;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-            touch-action: manipulation;
-        }
-
-        .color-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
+        input {
             width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
-            pointer-events: none;
-        }
-
-        .color-button::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.3s ease, height 0.3s ease;
-        }
-
-        .color-button.active::after {
-            width: 100%;
-            height: 100%;
-        }
-
-        .color-button:active {
-            transform: scale(0.95);
-        }
-
-        .red {
-            background: linear-gradient(135deg, #ff0040 0%, #cc0033 100%);
-            box-shadow: 0 8px 20px rgba(255, 0, 64, 0.4), inset 0 0 30px rgba(255, 100, 100, 0.3);
-        }
-
-        .red.active {
-            background: linear-gradient(135deg, #ff3366 0%, #ff0040 100%);
-            box-shadow: 0 0 40px rgba(255, 0, 64, 0.8), 0 0 60px rgba(255, 0, 64, 0.6);
-        }
-
-        .blue {
-            background: linear-gradient(135deg, #0080ff 0%, #0066cc 100%);
-            box-shadow: 0 8px 20px rgba(0, 128, 255, 0.4), inset 0 0 30px rgba(100, 150, 255, 0.3);
-        }
-
-        .blue.active {
-            background: linear-gradient(135deg, #3399ff 0%, #0080ff 100%);
-            box-shadow: 0 0 40px rgba(0, 128, 255, 0.8), 0 0 60px rgba(0, 128, 255, 0.6);
-        }
-
-        .green {
-            background: linear-gradient(135deg, #00ff80 0%, #00cc66 100%);
-            box-shadow: 0 8px 20px rgba(0, 255, 128, 0.4), inset 0 0 30px rgba(100, 255, 150, 0.3);
-        }
-
-        .green.active {
-            background: linear-gradient(135deg, #33ff99 0%, #00ff80 100%);
-            box-shadow: 0 0 40px rgba(0, 255, 128, 0.8), 0 0 60px rgba(0, 255, 128, 0.6);
-        }
-
-        .yellow {
-            background: linear-gradient(135deg, #ffff00 0%, #cccc00 100%);
-            box-shadow: 0 8px 20px rgba(255, 255, 0, 0.4), inset 0 0 30px rgba(255, 255, 100, 0.3);
-        }
-
-        .yellow.active {
-            background: linear-gradient(135deg, #ffff33 0%, #ffff00 100%);
-            box-shadow: 0 0 40px rgba(255, 255, 0, 0.8), 0 0 60px rgba(255, 255, 0, 0.6);
-        }
-
-        .control-button {
-            padding: 1rem 2.5rem;
+            padding: 1rem;
+            background: var(--bg-light);
+            border: 2px solid rgba(0, 255, 136, 0.2);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
             font-size: 1.1rem;
-            font-family: 'Press Start 2P', cursive;
-            background: linear-gradient(135deg, #ff00ff 0%, #00ffff 100%);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 1.2rem;
+            background: var(--accent);
+            color: var(--bg-dark);
             border: none;
-            border-radius: 50px;
-            color: #000;
-            font-weight: bold;
+            border-radius: 8px;
+            font-family: 'Syne', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(255, 0, 255, 0.4);
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-top: 1rem;
-            touch-action: manipulation;
         }
 
-        .control-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(255, 0, 255, 0.6);
+        button:hover {
+            background: #00cc6a;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.3);
         }
 
-        .control-button:active {
-            transform: translateY(-1px);
-        }
-
-        .control-button:disabled {
+        button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
         }
 
-        .message {
-            font-size: 1.2rem;
-            color: #fff;
+        .divider {
+            text-align: center;
             margin: 1.5rem 0;
-            min-height: 2rem;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.5s ease;
+            color: var(--text-dim);
+            font-size: 0.9rem;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .room-code-display {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--bg-medium);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 2px solid var(--accent);
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            animation: slideInRight 0.5s ease;
+            min-width: 200px;
         }
 
-        .message.error {
-            color: #ff0040;
-            text-shadow: 0 0 10px #ff0040;
-            animation: shake 0.5s ease;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        .message.success {
-            color: #00ff80;
-            text-shadow: 0 0 10px #00ff80;
-        }
-
-        .difficulty {
-            margin-top: 2rem;
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .difficulty-label {
-            font-size: 0.8rem;
-            color: #00ffff;
+        .room-code-display .label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
             margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
         }
 
-        .difficulty-buttons {
+        .room-code-display .code {
+            font-size: 2.5rem;
+            color: var(--accent);
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            letter-spacing: 0.3em;
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-dark);
+            border-radius: 6px;
+            margin-bottom: 0.8rem;
+        }
+
+        .copy-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--accent);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #00cc6a;
+            transform: translateY(-2px);
+        }
+
+        .copy-btn.copied {
+            background: var(--green);
+        }
+
+        .game-screen {
+            display: none;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .game-layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+        }
+
+        .game-main {
+            min-width: 0;
+        }
+
+        .chat-panel {
+            background: var(--bg-medium);
+            border: 2px solid rgba(0, 255, 136, 0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            height: fit-content;
+            max-height: 600px;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .chat-header {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.2rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            min-height: 200px;
+            max-height: 400px;
+            padding-right: 0.5rem;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 3px;
+        }
+
+        .chat-message {
+            margin-bottom: 1rem;
+            animation: slideInMessage 0.3s ease;
+        }
+
+        @keyframes slideInMessage {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .chat-message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.3rem;
+        }
+
+        .chat-sender {
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 0.85rem;
+        }
+
+        .chat-sender.you {
+            color: #00ffcc;
+        }
+
+        .chat-time {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .chat-text {
+            background: var(--bg-light);
+            padding: 0.6rem;
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .chat-input-container {
             display: flex;
             gap: 0.5rem;
-            justify-content: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.8rem;
+            background: var(--bg-light);
+            border: 2px solid rgba(0, 255, 136, 0.2);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .chat-send-btn {
+            padding: 0.8rem 1.2rem;
+            background: var(--accent);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            width: auto;
+        }
+
+        .chat-send-btn:hover {
+            background: #00cc6a;
+            transform: translateY(-2px);
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 1rem;
             flex-wrap: wrap;
         }
 
-        .difficulty-btn {
-            padding: 0.5rem 1rem;
-            font-family: 'Orbitron', sans-serif;
+        .info-box {
+            background: var(--bg-medium);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            border: 2px solid rgba(0, 255, 136, 0.2);
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .info-label {
             font-size: 0.8rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid #00ffff;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'Syne', sans-serif;
+        }
+
+        .simon-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            max-width: 500px;
+            margin: 0 auto 2rem;
+            aspect-ratio: 1;
+        }
+
+        .simon-button {
             border-radius: 20px;
-            color: #00ffff;
             cursor: pointer;
-            transition: all 0.3s ease;
-            touch-action: manipulation;
+            transition: all 0.1s ease;
+            border: 4px solid rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
         }
 
-        .difficulty-btn:hover {
-            background: rgba(0, 255, 255, 0.2);
-            transform: scale(1.05);
+        .simon-button:active {
+            transform: scale(0.95);
         }
 
-        .difficulty-btn.active {
-            background: #00ffff;
-            color: #000;
-            font-weight: bold;
+        .simon-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
         }
 
-        @media (max-width: 480px) {
-            .game-board {
-                max-width: 300px;
-                gap: 0.75rem;
-            }
+        .simon-button.red {
+            background: linear-gradient(135deg, #cc0000 0%, var(--red) 100%);
+        }
 
-            .control-button {
-                padding: 0.8rem 2rem;
-                font-size: 0.7rem;
-            }
+        .simon-button.blue {
+            background: linear-gradient(135deg, #0044cc 0%, var(--blue) 100%);
+        }
 
-            .score-item {
-                padding: 0.75rem;
-            }
+        .simon-button.green {
+            background: linear-gradient(135deg, #00cc00 0%, var(--green) 100%);
+        }
 
-            .score-value {
-                font-size: 1.2rem;
+        .simon-button.yellow {
+            background: linear-gradient(135deg, #cccc00 0%, var(--yellow) 100%);
+        }
+
+        .simon-button.active {
+            filter: brightness(1.8);
+            box-shadow: 0 0 40px currentColor;
+        }
+
+        .simon-button.red.active { box-shadow: 0 0 40px var(--red); }
+        .simon-button.blue.active { box-shadow: 0 0 40px var(--blue); }
+        .simon-button.green.active { box-shadow: 0 0 40px var(--green); }
+        .simon-button.yellow.active { box-shadow: 0 0 40px var(--yellow); }
+
+        .game-controls {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .game-controls button {
+            width: auto;
+            padding: 1rem 3rem;
+            margin: 0 0.5rem;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 1.5rem;
+            background: var(--bg-medium);
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+            border-left: 4px solid var(--accent);
+        }
+
+        .status-message.error {
+            border-left-color: var(--red);
+            color: var(--red);
+        }
+
+        .status-message.success {
+            border-left-color: var(--green);
+            color: var(--green);
+        }
+
+        .players-list {
+            background: var(--bg-medium);
+            border: 2px solid rgba(0, 255, 136, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .players-list h3 {
+            font-family: 'Syne', sans-serif;
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.8rem;
+            background: var(--bg-light);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .player-name {
+            font-weight: 700;
+        }
+
+        .player-score {
+            color: var(--accent);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .game-layout {
+                grid-template-columns: 1fr 250px;
+            }
+            
+            .chat-panel {
+                padding: 1rem;
             }
         }
 
-        .particles {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .particle {
-            position: absolute;
-            width: 3px;
-            height: 3px;
-            background: #fff;
-            border-radius: 50%;
-            animation: particleFloat 4s linear infinite;
-        }
-
-        @keyframes particleFloat {
-            0% {
-                transform: translateY(100vh) scale(0);
-                opacity: 0;
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .simon-board { max-width: 90vw; }
+            .card { padding: 1.5rem; }
+            .game-controls button { 
+                width: 100%;
+                margin: 0.5rem 0;
             }
-            10% {
-                opacity: 1;
+            .room-code-display {
+                top: 1rem;
+                right: 1rem;
+                left: 1rem;
+                max-width: none;
             }
-            90% {
-                opacity: 1;
+            .room-code-display .code {
+                font-size: 2rem;
+                letter-spacing: 0.2em;
             }
-            100% {
-                transform: translateY(-10vh) scale(1);
-                opacity: 0;
+            
+            /* Stack chat below game on mobile */
+            .game-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .chat-panel {
+                position: static;
+                max-height: 400px;
+                margin-top: 2rem;
+            }
+            
+            .chat-messages {
+                max-height: 250px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="particles" id="particles"></div>
+    <div class="bg-pattern"></div>
     
     <div class="container">
-        <h1>SIMON SAYS</h1>
-        
-        <div class="score-board">
-            <div class="score-item">
-                <div class="score-label">Round</div>
-                <div class="score-value" id="round">0</div>
+        <header>
+            <h1>SIMON SAYS</h1>
+            <p class="subtitle">Multiplayer Memory Game</p>
+        </header>
+
+        <!-- Setup Screen -->
+        <div class="setup-screen" id="setupScreen">
+            <div class="card">
+                <h2>Create Game</h2>
+                <button id="createGameBtn">Create New Game</button>
             </div>
-            <div class="score-item">
-                <div class="score-label">Best</div>
-                <div class="score-value" id="best">0</div>
+
+            <div class="divider">— OR —</div>
+
+            <div class="card">
+                <h2>Join Game</h2>
+                <div class="input-group">
+                    <label for="joinCode">Enter Game Code</label>
+                    <input type="text" id="joinCode" placeholder="12345" maxlength="5" pattern="[0-9]*" inputmode="numeric">
+                </div>
+                <button id="joinGameBtn">Join Game</button>
             </div>
         </div>
 
-        <div class="message" id="message">Press START to begin!</div>
-
-        <div class="game-board">
-            <button class="color-button red" data-color="red"></button>
-            <button class="color-button blue" data-color="blue"></button>
-            <button class="color-button green" data-color="green"></button>
-            <button class="color-button yellow" data-color="yellow"></button>
+        <!-- Room Code Display -->
+        <div class="room-code-display hidden" id="roomCodeDisplay">
+            <div class="label">Game Code</div>
+            <div class="code" id="roomCode"></div>
+            <button class="copy-btn" id="copyBtn">Copy Code</button>
         </div>
 
-        <button class="control-button" id="startBtn">Start Game</button>
+        <!-- Game Screen -->
+        <div class="game-screen" id="gameScreen">
+            <div class="game-layout">
+                <div class="game-main">
+                    <div class="game-info">
+                        <div class="info-box">
+                            <div class="info-label">Round</div>
+                            <div class="info-value" id="roundNumber">1</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">Your Score</div>
+                            <div class="info-value" id="yourScore">0</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">High Score</div>
+                            <div class="info-value" id="highScore">0</div>
+                        </div>
+                    </div>
 
-        <div class="difficulty">
-            <div class="difficulty-label">SPEED</div>
-            <div class="difficulty-buttons">
-                <button class="difficulty-btn" data-speed="800">Chill</button>
-                <button class="difficulty-btn active" data-speed="600">Normal</button>
-                <button class="difficulty-btn" data-speed="400">Fast</button>
-                <button class="difficulty-btn" data-speed="250">Insane</button>
+                    <div class="status-message" id="statusMessage">
+                        Welcome! Click "Start Game" to begin
+                    </div>
+
+                    <div class="simon-board">
+                        <div class="simon-button red" data-color="red"></div>
+                        <div class="simon-button blue" data-color="blue"></div>
+                        <div class="simon-button green" data-color="green"></div>
+                        <div class="simon-button yellow" data-color="yellow"></div>
+                    </div>
+
+                    <div class="game-controls">
+                        <button id="startGameBtn">Start Game</button>
+                        <button id="leaveGameBtn">Leave Game</button>
+                    </div>
+
+                    <div class="players-list">
+                        <h3>Players <span id="playerCount">1</span></h3>
+                        <div id="playersContainer"></div>
+                    </div>
+                </div>
+
+                <div class="chat-panel">
+                    <div class="chat-header">💬 Chat</div>
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input-container">
+                        <input 
+                            type="text" 
+                            class="chat-input" 
+                            id="chatInput" 
+                            placeholder="Type a message..."
+                            maxlength="200"
+                        >
+                        <button class="chat-send-btn" id="chatSendBtn">Send</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const colorButtons = document.querySelectorAll('.color-button');
-        const startBtn = document.getElementById('startBtn');
-        const messageEl = document.getElementById('message');
-        const roundEl = document.getElementById('round');
-        const bestEl = document.getElementById('best');
-        const difficultyBtns = document.querySelectorAll('.difficulty-btn');
-        const particlesContainer = document.getElementById('particles');
-
+        let peer;
+        let myPeerId;
+        let roomId;
+        let isHost = false;
+        let connections = {};
+        let players = {};
+        
+        // Game state
         let sequence = [];
         let playerSequence = [];
-        let round = 0;
+        let round = 1;
+        let score = 0;
         let isPlaying = false;
         let isShowingSequence = false;
-        let speed = 600;
-        let bestScore = localStorage.getItem('simonBest') || 0;
-        bestEl.textContent = bestScore;
+        let highScore = 0;
 
-        // Audio context for sounds
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
+        const colors = ['red', 'blue', 'green', 'yellow'];
         const sounds = {
-            red: 329.63,    // E4
-            blue: 261.63,   // C4
+            red: 261.63,    // C4
+            blue: 329.63,   // E4
             green: 392.00,  // G4
-            yellow: 440.00  // A4
+            yellow: 493.88  // B4
         };
 
-        function playSound(frequency, duration = 300) {
+        // DOM elements
+        const setupScreen = document.getElementById('setupScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const createGameBtn = document.getElementById('createGameBtn');
+        const joinGameBtn = document.getElementById('joinGameBtn');
+        const joinCodeInput = document.getElementById('joinCode');
+        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+        const roomCodeEl = document.getElementById('roomCode');
+        const copyBtn = document.getElementById('copyBtn');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const leaveGameBtn = document.getElementById('leaveGameBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const roundNumber = document.getElementById('roundNumber');
+        const yourScore = document.getElementById('yourScore');
+        const highScoreEl = document.getElementById('highScore');
+        const playerCount = document.getElementById('playerCount');
+        const playersContainer = document.getElementById('playersContainer');
+        const simonButtons = document.querySelectorAll('.simon-button');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+
+        // Audio context for sounds
+        let audioContext;
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(frequency) {
+            if (!audioContext) initAudio();
+            
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             
@@ -441,236 +764,491 @@
             oscillator.type = 'sine';
             
             gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + duration / 1000);
-        }
-
-        function playErrorSound() {
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 100;
-            oscillator.type = 'sawtooth';
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
             
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.3);
         }
 
-        function lightUp(button, duration = speed * 0.8) {
-            return new Promise(resolve => {
-                const color = button.dataset.color;
-                playSound(sounds[color], duration);
-                button.classList.add('active');
+        function generateRoomCode() {
+            return Math.floor(10000 + Math.random() * 90000).toString();
+        }
+
+        function initPeer(customId = null) {
+            const peerId = customId || generateRoomCode();
+            
+            peer = new Peer(peerId);
+
+            peer.on('open', (id) => {
+                myPeerId = id;
+                console.log('My peer ID:', id);
                 
-                setTimeout(() => {
-                    button.classList.remove('active');
-                    setTimeout(resolve, speed * 0.2);
-                }, duration);
+                if (isHost) {
+                    roomId = id;
+                    roomCodeEl.textContent = id;
+                    roomCodeDisplay.classList.remove('hidden');
+                    
+                    players[myPeerId] = { name: 'You', score: 0, isHost: true };
+                    updatePlayersList();
+                    updateStatus('Game created! Share code: ' + id + ' with friends!', 'success');
+                }
+            });
+
+            peer.on('connection', (conn) => {
+                console.log('New connection from:', conn.peer);
+                setupConnection(conn);
+            });
+
+            peer.on('error', (err) => {
+                console.error('Peer error:', err);
+                
+                // If the peer ID is taken, generate a new one
+                if (err.type === 'unavailable-id') {
+                    console.log('ID taken, generating new one...');
+                    peer.destroy();
+                    initPeer();
+                } else {
+                    updateStatus('Connection error: ' + err.type, 'error');
+                }
             });
         }
 
-        async function showSequence() {
+        function setupConnection(conn) {
+            connections[conn.peer] = conn;
+
+            conn.on('open', () => {
+                console.log('Connection opened with:', conn.peer);
+                
+                // Send current game state to new player
+                if (isHost) {
+                    conn.send({
+                        type: 'gameState',
+                        players: players,
+                        round: round,
+                        highScore: highScore
+                    });
+                }
+            });
+
+            conn.on('data', (data) => {
+                handleMessage(data, conn.peer);
+            });
+
+            conn.on('close', () => {
+                console.log('Connection closed:', conn.peer);
+                delete connections[conn.peer];
+                
+                // Notify about player leaving
+                const playerName = players[conn.peer]?.name || 'A player';
+                delete players[conn.peer];
+                updatePlayersList();
+                addChatMessage('System', `${playerName} left the game`, true);
+            });
+        }
+
+        function handleMessage(data, fromPeer) {
+            console.log('Received:', data);
+
+            switch(data.type) {
+                case 'playerJoin':
+                    players[fromPeer] = { name: data.name, score: 0 };
+                    updatePlayersList();
+                    broadcast({ type: 'playerUpdate', players: players });
+                    // Add system message
+                    addChatMessage('System', `${data.name} joined the game`, true);
+                    break;
+
+                case 'playerUpdate':
+                    players = data.players;
+                    updatePlayersList();
+                    break;
+
+                case 'gameState':
+                    players = data.players;
+                    round = data.round;
+                    highScore = data.highScore;
+                    updateGameDisplay();
+                    updatePlayersList();
+                    break;
+
+                case 'startGame':
+                    if (!isHost) {
+                        startNewGame();
+                    }
+                    break;
+
+                case 'scoreUpdate':
+                    if (players[fromPeer]) {
+                        players[fromPeer].score = data.score;
+                        updatePlayersList();
+                        if (data.score > highScore) {
+                            highScore = data.score;
+                            highScoreEl.textContent = highScore;
+                        }
+                    }
+                    break;
+
+                case 'chatMessage':
+                    addChatMessage(data.sender, data.message, false);
+                    break;
+            }
+        }
+
+        function addChatMessage(sender, message, isSystem = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            const isYou = sender === 'You';
+            const senderClass = isYou ? 'you' : '';
+            
+            if (isSystem) {
+                messageDiv.innerHTML = `
+                    <div class="chat-text" style="background: rgba(0, 255, 136, 0.1); border-left: 3px solid var(--accent);">
+                        <strong>${message}</strong>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="chat-message-header">
+                        <span class="chat-sender ${senderClass}">${sender}</span>
+                        <span class="chat-time">${timeStr}</span>
+                    </div>
+                    <div class="chat-text">${escapeHtml(message)}</div>
+                `;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function sendChatMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+            
+            // Add to own chat
+            addChatMessage('You', message, false);
+            
+            // Broadcast to others
+            broadcast({
+                type: 'chatMessage',
+                sender: players[myPeerId]?.name || 'Player',
+                message: message
+            });
+            
+            chatInput.value = '';
+        }
+
+        function broadcast(data) {
+            Object.values(connections).forEach(conn => {
+                if (conn.open) {
+                    conn.send(data);
+                }
+            });
+        }
+
+        function updatePlayersList() {
+            playersContainer.innerHTML = '';
+            const playerArray = Object.entries(players);
+            
+            playerCount.textContent = playerArray.length;
+
+            playerArray
+                .sort((a, b) => b[1].score - a[1].score)
+                .forEach(([id, player]) => {
+                    const item = document.createElement('div');
+                    item.className = 'player-item';
+                    item.innerHTML = `
+                        <span class="player-name">${player.name} ${player.isHost ? '👑' : ''}</span>
+                        <span class="player-score">${player.score}</span>
+                    `;
+                    playersContainer.appendChild(item);
+                });
+        }
+
+        function updateStatus(message, type = '') {
+            statusMessage.textContent = message;
+            statusMessage.className = 'status-message ' + type;
+        }
+
+        function updateGameDisplay() {
+            roundNumber.textContent = round;
+            yourScore.textContent = score;
+            highScoreEl.textContent = highScore;
+        }
+
+        // Game logic
+        function startNewGame() {
+            initAudio();
+            sequence = [];
+            playerSequence = [];
+            round = 1;
+            score = 0;
+            isPlaying = true;
+            
+            updateGameDisplay();
+            updateStatus('Get ready...', '');
+            
+            // Notify chat
+            addChatMessage('System', '🎮 Game started! Good luck!', true);
+            
+            setTimeout(() => {
+                nextRound();
+            }, 1000);
+        }
+
+        function nextRound() {
+            playerSequence = [];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            sequence.push(randomColor);
+            
+            updateStatus(`Round ${round} - Watch carefully!`, '');
+            roundNumber.textContent = round;
+            
+            playSequence();
+        }
+
+        async function playSequence() {
             isShowingSequence = true;
-            startBtn.disabled = true;
-            messageEl.textContent = 'Watch carefully...';
-            messageEl.classList.remove('error', 'success');
+            disableButtons();
             
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await new Promise(resolve => setTimeout(resolve, 500));
             
-            for (let color of sequence) {
-                const button = document.querySelector(`[data-color="${color}"]`);
-                await lightUp(button);
+            for (let i = 0; i < sequence.length; i++) {
+                await highlightButton(sequence[i]);
+                await new Promise(resolve => setTimeout(resolve, 200));
             }
             
             isShowingSequence = false;
-            messageEl.textContent = 'Your turn!';
-            messageEl.classList.add('success');
+            enableButtons();
+            updateStatus('Your turn! Repeat the sequence', '');
         }
 
-        function addToSequence() {
-            const colors = ['red', 'blue', 'green', 'yellow'];
-            const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            sequence.push(randomColor);
+        function highlightButton(color) {
+            return new Promise(resolve => {
+                const button = document.querySelector(`[data-color="${color}"]`);
+                button.classList.add('active');
+                playSound(sounds[color]);
+                
+                setTimeout(() => {
+                    button.classList.remove('active');
+                    resolve();
+                }, 400);
+            });
         }
 
-        function checkSequence() {
-            const index = playerSequence.length - 1;
+        function disableButtons() {
+            simonButtons.forEach(btn => btn.classList.add('disabled'));
+        }
+
+        function enableButtons() {
+            simonButtons.forEach(btn => btn.classList.remove('disabled'));
+        }
+
+        function handleButtonClick(color) {
+            if (isShowingSequence || !isPlaying) return;
             
-            if (playerSequence[index] !== sequence[index]) {
+            highlightButton(color);
+            playerSequence.push(color);
+            
+            const currentIndex = playerSequence.length - 1;
+            
+            if (playerSequence[currentIndex] !== sequence[currentIndex]) {
+                // Wrong!
                 gameOver();
-                return false;
+                return;
             }
             
             if (playerSequence.length === sequence.length) {
-                round++;
-                roundEl.textContent = round;
+                // Correct sequence!
+                score += round * 10;
+                yourScore.textContent = score;
                 
-                if (round > bestScore) {
-                    bestScore = round;
-                    bestEl.textContent = bestScore;
-                    localStorage.setItem('simonBest', bestScore);
-                    createCelebration();
+                if (score > highScore) {
+                    highScore = score;
+                    highScoreEl.textContent = highScore;
                 }
                 
-                playerSequence = [];
-                messageEl.textContent = `Round ${round} complete! 🎉`;
-                messageEl.classList.add('success');
+                // Broadcast score
+                broadcast({
+                    type: 'scoreUpdate',
+                    score: score
+                });
+                
+                updateStatus('Correct! 🎉', 'success');
+                round++;
                 
                 setTimeout(() => {
-                    addToSequence();
-                    showSequence();
+                    nextRound();
                 }, 1500);
-                
-                return true;
             }
-            
-            return true;
         }
 
         function gameOver() {
             isPlaying = false;
-            playErrorSound();
-            messageEl.textContent = `Game Over! You reached round ${round}`;
-            messageEl.classList.add('error');
-            startBtn.disabled = false;
-            startBtn.textContent = 'Play Again';
+            disableButtons();
             
-            // Flash all buttons red
-            colorButtons.forEach(btn => {
-                btn.classList.add('active');
+            updateStatus(`Game Over! Final Score: ${score}`, 'error');
+            
+            // Broadcast final score
+            broadcast({
+                type: 'scoreUpdate',
+                score: score
             });
             
             setTimeout(() => {
-                colorButtons.forEach(btn => {
-                    btn.classList.remove('active');
-                });
+                updateStatus('Click "Start Game" to play again', '');
+                enableButtons();
+            }, 3000);
+        }
+
+        // Event listeners
+        createGameBtn.addEventListener('click', () => {
+            isHost = true;
+            setupScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            updateStatus('Creating game... Share the code above with friends!', '');
+            initPeer();
+            
+            // Add welcome message
+            setTimeout(() => {
+                addChatMessage('System', 'Welcome to Simon Says! Share your game code with friends.', true);
             }, 500);
-        }
-
-        function startGame() {
-            sequence = [];
-            playerSequence = [];
-            round = 0;
-            isPlaying = true;
-            roundEl.textContent = round;
-            startBtn.textContent = 'Playing...';
-            
-            addToSequence();
-            showSequence();
-        }
-
-        // Button click handlers (mouse and touch)
-        colorButtons.forEach(button => {
-            const handlePress = async (e) => {
-                if (!isPlaying || isShowingSequence) return;
-                
-                e.preventDefault();
-                
-                const color = button.dataset.color;
-                playerSequence.push(color);
-                
-                await lightUp(button, 200);
-                checkSequence();
-            };
-            
-            button.addEventListener('click', handlePress);
-            button.addEventListener('touchstart', handlePress);
         });
 
-        startBtn.addEventListener('click', startGame);
-
-        // Difficulty selection
-        difficultyBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (isPlaying) return;
+        joinGameBtn.addEventListener('click', () => {
+            const code = joinCodeInput.value.trim();
+            if (!code) {
+                alert('Please enter a game code');
+                return;
+            }
+            
+            if (code.length !== 5 || !/^\d+$/.test(code)) {
+                alert('Game code must be exactly 5 digits');
+                joinCodeInput.style.borderColor = 'var(--red)';
+                setTimeout(() => {
+                    joinCodeInput.style.borderColor = '';
+                }, 2000);
+                return;
+            }
+            
+            isHost = false;
+            roomId = code;
+            setupScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            updateStatus('Connecting to game...', '');
+            
+            // Generate a unique ID for this player
+            const myCustomId = generateRoomCode();
+            initPeer(myCustomId);
+            
+            peer.on('open', (id) => {
+                const conn = peer.connect(roomId);
+                setupConnection(conn);
                 
-                difficultyBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                speed = parseInt(btn.dataset.speed);
+                conn.on('open', () => {
+                    conn.send({
+                        type: 'playerJoin',
+                        name: `Player ${id.substring(0, 5)}`
+                    });
+                    
+                    players[myPeerId] = { name: 'You', score: 0 };
+                    updatePlayersList();
+                    updateStatus('Connected! Waiting for host to start...', 'success');
+                    
+                    // Add welcome message
+                    addChatMessage('System', 'You joined the game! Say hi to everyone.', true);
+                });
+                
+                conn.on('error', (err) => {
+                    console.error('Connection error:', err);
+                    updateStatus('Could not connect. Game code may be invalid.', 'error');
+                });
+                
+                // Timeout if connection takes too long
+                setTimeout(() => {
+                    if (!conn.open) {
+                        updateStatus('Connection timeout. Check the game code.', 'error');
+                    }
+                }, 10000);
             });
         });
 
-        // Create background particles
-        function createParticle() {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.animationDelay = Math.random() * 4 + 's';
-            particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
-            
-            const colors = ['#ff0040', '#0080ff', '#00ff80', '#ffff00'];
-            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-            
-            particlesContainer.appendChild(particle);
-            
-            setTimeout(() => particle.remove(), 7000);
-        }
-
-        setInterval(createParticle, 300);
-
-        // Celebration effect
-        function createCelebration() {
-            for (let i = 0; i < 30; i++) {
+        copyBtn.addEventListener('click', async () => {
+            const code = roomCodeEl.textContent;
+            try {
+                await navigator.clipboard.writeText(code);
+                copyBtn.textContent = '✓ Copied!';
+                copyBtn.classList.add('copied');
                 setTimeout(() => {
-                    const particle = document.createElement('div');
-                    particle.style.position = 'fixed';
-                    particle.style.width = '10px';
-                    particle.style.height = '10px';
-                    particle.style.borderRadius = '50%';
-                    particle.style.left = '50%';
-                    particle.style.top = '50%';
-                    particle.style.pointerEvents = 'none';
-                    particle.style.zIndex = '1000';
-                    
-                    const colors = ['#ff0040', '#0080ff', '#00ff80', '#ffff00', '#ff00ff', '#00ffff'];
-                    particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-                    
-                    const angle = (Math.PI * 2 * i) / 30;
-                    const velocity = 5 + Math.random() * 5;
-                    const vx = Math.cos(angle) * velocity;
-                    const vy = Math.sin(angle) * velocity;
-                    
-                    document.body.appendChild(particle);
-                    
-                    let x = 0, y = 0;
-                    const animate = () => {
-                        x += vx;
-                        y += vy;
-                        particle.style.transform = `translate(${x}px, ${y}px)`;
-                        particle.style.opacity = 1 - (Math.abs(x) + Math.abs(y)) / 500;
-                        
-                        if (Math.abs(x) < 300 && Math.abs(y) < 300) {
-                            requestAnimationFrame(animate);
-                        } else {
-                            particle.remove();
-                        }
-                    };
-                    
-                    requestAnimationFrame(animate);
-                }, i * 20);
+                    copyBtn.textContent = 'Copy Code';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                // Fallback for browsers that don't support clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    copyBtn.textContent = '✓ Copied!';
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy Code';
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                } catch (err2) {
+                    alert('Code: ' + code);
+                }
+                document.body.removeChild(textArea);
             }
-        }
+        });
 
-        // Initialize audio context on first user interaction
-        document.addEventListener('touchstart', () => {
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
+        startGameBtn.addEventListener('click', () => {
+            if (isHost) {
+                broadcast({ type: 'startGame' });
             }
-        }, { once: true });
+            startNewGame();
+        });
 
-        document.addEventListener('click', () => {
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
+        leaveGameBtn.addEventListener('click', () => {
+            if (confirm('Leave the game?')) {
+                location.reload();
             }
-        }, { once: true });
+        });
+
+        simonButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const color = button.dataset.color;
+                handleButtonClick(color);
+            });
+        });
+
+        // Format join code input to only accept numbers
+        joinCodeInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 5);
+        });
+
+        // Chat functionality
+        chatSendBtn.addEventListener('click', sendChatMessage);
+        
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
     </script>
 </body>
 </html>
